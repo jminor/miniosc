@@ -46,7 +46,7 @@ typedef struct
 
 // Initialize a miniosc.  It mallocs the data in the return structure.  If there was an
 // error, it will return NULL, and minioscerrorcode will be populated if it was nonnull.
-miniosc * minioscInit( int portin, int portout, char * addressout, int * minioscerrorcode );
+miniosc * minioscInit( int portin, int portout, const char * addressout, int * minioscerrorcode );
 
 // Send an OSC message, this will pull the types off of varargs.
 //  'i', 'c' and 'r': send an int, include an int in your varargs.
@@ -130,7 +130,7 @@ static int _minioscGetQBL( const char * start, char ** here, int length )
 	return thislen;
 }
 
-miniosc * minioscInit( int portin, int portout, char * addressout, int * minioscerrorcode )
+miniosc * minioscInit( int portin, int portout, const char * addressout, int * minioscerrorcode )
 {
 #ifdef MINIOSCWIN
 	WSADATA rep;
@@ -214,7 +214,7 @@ miniosc * minioscInit( int portin, int portout, char * addressout, int * miniosc
 	}
 #endif
 	if( minioscerrorcode ) *minioscerrorcode = 0;
-	miniosc * ret = malloc( sizeof( miniosc ) );
+	miniosc * ret = (miniosc *)malloc( sizeof( miniosc ) );
 	ret->sock = sock;
 	return ret;
 }
@@ -267,7 +267,7 @@ static int minioscEncodeInternal( char * buffer, char ** bptr, int mob, const ch
 			const void * st = va_arg( ap, const void * );
 			int lensend = htonl( len );
 			if( ( err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, 4, (const char*)&lensend ) ) ) return err;
-			if( ( err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, len, st ) ) ) return err;
+			if( ( err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, len, (const char*)st ) ) ) return err;
 			break;
 		}
 		case 'F':
@@ -386,7 +386,7 @@ static int minioscProcess( char * buffer, char ** eptr, int r, void (*callback)(
 			if( sl < 0 ) MINIOSC_ERROR_PROTOCOL;
 			if( sl == 0 )
 			{
-				parameters[p] = "\0\0\0\0";
+				parameters[p] = 0; //"\0\0\0\0";
 				*eptr += 4;
 			}
 			else parameters[p++] = st;
@@ -400,7 +400,7 @@ static int minioscProcess( char * buffer, char ** eptr, int r, void (*callback)(
 			char * st = *eptr;
 			int sl = _minioscGetQBL( buffer, eptr, r );
 			if( sl < 0 ) return MINIOSC_ERROR_PROTOCOL;
-			if( sl == 0 ) parameters[p++] = "\0\0\0\0";
+			if( sl == 0 ) parameters[p++] = 0; //"\0\0\0\0";
 			else parameters[p++] = st;
 			break;
 		}
